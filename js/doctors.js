@@ -17,7 +17,6 @@ function cargoContenidoStreaming() {
                                 <p class="card-text">${contenidoJSON[i].location.city}, ${contenidoJSON[i].location.country}</p>
                                 <p class="card-text">${contenidoJSON[i].dob.age} años</p>
                                 <p class="card-text">${contenidoJSON[i].email}</p>
-                                <a href="#" class="btn btn-primary">Go somewhere</a>
                             </div>
                         </div>
                         </div>`
