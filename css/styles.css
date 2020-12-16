@@ -25,6 +25,12 @@ header {
 header h1 {
   color: white;
 }
+a:link{
+  text-decoration: none;
+}
+ul li{
+  list-style: none;
+}
 .lista-citas .cita {
   border-bottom: 1px solid #e1e1e1;
   padding: 2rem;

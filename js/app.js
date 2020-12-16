@@ -64,10 +64,10 @@ const nuevoTurno = (e) => {
     formulario.reset();
 
     //Agrega turno al localstorage
-    updateStorage()
+    updateStorage();
 
     //Agrega turno al html
-    ui.imprimirTurno(adminTurnos)
+    ui.imprimirTurno(adminTurnos);
 
 }
 eventListeners()
@@ -91,7 +91,7 @@ $(document).ready(function () {
 });
 
 $("input").focus(function () {
-    $(this).css("background-color", "#D41872");
+    $(this).css("background-color", "#000000");
     $(this).css("color", "#ffff");
 
 });
@@ -108,6 +108,10 @@ class Turnos {
         this.turnos = [...this.turnos, turno];
         console.log(this.turnos);
     }
+
+    eliminarTurno(id) {
+        this.turnos = this.turnos.filter(turno => turno.id !== id)
+    }
 }
 
 
@@ -123,7 +127,7 @@ class UserInterface {
         if (tipo === 'error') {
             divMessage.classList.add('alert-danger');
         } else if (tipo === 'success') {
-            divMensaje.classList.add('alert-success');
+            divMensaje.classList.add('alert-info');
         }
         //Mensaje de error
         divMessage.textContent = mensaje;
@@ -176,6 +180,18 @@ class UserInterface {
                 <span class="font-weight-bolder">Síntomas: </span> ${sintomas}
             `;
 
+            //Boton que elimina el turno
+            const btnEliminar = document.createElement('button');
+            btnEliminar.classList.add('btn', 'btn-danger', 'mr-2');
+            btnEliminar.innerHTML = 'Eliminar <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+
+            btnEliminar.onclick = () => eliminarTurno(id);
+
+            //Boton para editar el turno
+            const btnEditar = document.createElement('button');
+            btnEditar.classList.add('btn', 'btn-info');
+            btnEditar.innerHTML = ('Editar <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>');
+            btnEditar.onclick = () => editarTurno(turno);
             //Add txt to pacienteTxt
             divTurno.appendChild(pacienteTxt);
             divTurno.appendChild(pacienteEmail);
@@ -183,6 +199,8 @@ class UserInterface {
             divTurno.appendChild(pacienteFecha);
             divTurno.appendChild(pacienteHora);
             divTurno.appendChild(pacienteSintomas);
+            divTurno.appendChild(btnEliminar);
+            divTurno.appendChild(btnEditar);
 
             //Add to HTML
             containerTurnos.appendChild(divTurno);
@@ -213,3 +231,28 @@ const updateStorage = () => {
     localStorage.setItem('turnos', JSON.stringify(adminTurnos))
 }
 
+const eliminarTurno = (id) => {
+    //Eliminar el turno
+    adminTurnos.eliminarTurno(id);
+    //Muestro un mensaje
+    ui.imprimirAlerta('El turno fue eliminado correctamente', 'error');
+    //Reload los turnos
+    ui.imprimirTurno(adminTurnos);
+}
+
+//Carga de datos y la edicion
+const editarTurno = (turno) => {
+    const { paciente, email, telefono, fecha, hora, sintomas } = turno;
+
+    //Completar los inputs
+    pacienteInput.value = paciente;
+    emailInput.value = email;
+    telefonoInput.value = telefono;
+    fechaInput.value = fecha;
+    horaInput.value = hora;
+    sintomasInput.value = sintomas;
+
+    //Cambio de texto en el boton
+    formulario.querySelector('button[type="submit"]').textContent = 'Guardar Cambios';
+    //quedé en el 555
+}
