@@ -8,8 +8,10 @@ const sintomasInput = document.querySelector('#sintomas');
 // User Interface
 const formulario = document.querySelector('#nuevo-turno');
 const containerTurnos = document.querySelector('#turnos');
-const submitButton = $(".btn")
 
+// const heading = document.querySelector('#administra')
+const submitButton = $(".btn")
+let editing;
 
 function eventListeners() {
     pacienteInput.addEventListener('change', datosTurno);
@@ -31,6 +33,7 @@ const turnosObj = {
     fecha: '',
     hora: '',
     sintomas: '',
+    id: ''
 }
 
 //Funcion que agrega los datos ingresados en los inputs
@@ -42,7 +45,7 @@ const datosTurno = (e) => {
 //Validacion y agregado de turnos a la clase de Turnos
 const nuevoTurno = (e) => {
     e.preventDefault();
-    const { paciente, email, telefono, fecha, hora, sintomas } = turnosObj;
+    const { paciente, email, telefono, fecha, hora, sintomas, id } = turnosObj;
 
     //validacion de campos
     if (paciente === '' || email === '' || telefono === '' || fecha === '' || hora === '' || sintomas === '') {
@@ -51,11 +54,32 @@ const nuevoTurno = (e) => {
         return;
     }
 
-    //Agregar id
-    turnosObj.id = Date.now()
+    if (editing) {
+        ui.imprimirAlerta('Se editó correctamente', 'error');
 
-    //Crear nuevo turno
-    adminTurnos.agregarTurno({ ...turnosObj })
+        //Pasar el obj del turnos edicion
+        adminTurnos.editarTurno({ ...turnosObj });
+
+        formulario.querySelector('button[type="submit"]').textContent = 'Crear Turno';
+        //Sacar el modo edicion
+        editing = false;
+
+    } else {
+        //Agregar id
+        turnosObj.id = Date.now();
+
+        //Crear nuevo turno
+        adminTurnos.agregarTurno({ ...turnosObj });
+
+        //Mensaje de confirmacion
+        ui.imprimirAlerta('Se agregó correctamente', 'error');
+    }
+
+    // //Agregar id
+    // turnosObj.id = Date.now()
+
+    // //Crear nuevo turno
+    // adminTurnos.agregarTurno({ ...turnosObj })
 
     //Reinicio de obj
     resetObj()
@@ -95,9 +119,6 @@ $("input").focus(function () {
     $(this).css("color", "#ffff");
 
 });
-
-
-
 //Class de Turnos
 class Turnos {
     constructor() {
@@ -112,8 +133,12 @@ class Turnos {
     eliminarTurno(id) {
         this.turnos = this.turnos.filter(turno => turno.id !== id)
     }
-}
 
+    editarTurno(turnoActualizado) {
+        this.turnos = this.turnos.map(turno => turno.id === turnoActualizado.id ? turnoActualizado : turno);
+    }
+
+}
 
 
 //Class de User Interface
@@ -127,7 +152,7 @@ class UserInterface {
         if (tipo === 'error') {
             divMessage.classList.add('alert-danger');
         } else if (tipo === 'success') {
-            divMensaje.classList.add('alert-info');
+            divMensaje.classList.add('alert-warning');
         }
         //Mensaje de error
         divMessage.textContent = mensaje;
@@ -214,6 +239,8 @@ class UserInterface {
     }
 }
 
+
+
 const ui = new UserInterface();
 const adminTurnos = new Turnos();
 
@@ -242,7 +269,7 @@ const eliminarTurno = (id) => {
 
 //Carga de datos y la edicion
 const editarTurno = (turno) => {
-    const { paciente, email, telefono, fecha, hora, sintomas } = turno;
+    const { paciente, email, telefono, fecha, hora, sintomas, id } = turno;
 
     //Completar los inputs
     pacienteInput.value = paciente;
@@ -252,7 +279,17 @@ const editarTurno = (turno) => {
     horaInput.value = hora;
     sintomasInput.value = sintomas;
 
+    //Completar el Obj
+    turnosObj.paciente = paciente;
+    turnosObj.email = email;
+    turnosObj.telefono = telefono;
+    turnosObj.fecha = fecha;
+    turnosObj.hora = hora;
+    turnosObj.sintomas = sintomas;
+    turnosObj.id = id;
+
     //Cambio de texto en el boton
     formulario.querySelector('button[type="submit"]').textContent = 'Guardar Cambios';
-    //quedé en el 555
+
+    editing = true;
 }
