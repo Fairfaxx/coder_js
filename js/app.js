@@ -1,3 +1,4 @@
+let DB;
 //Los campos del Form
 const pacienteInput = document.querySelector('#paciente');
 const emailInput = document.querySelector('#email');
@@ -24,6 +25,11 @@ function eventListeners() {
     formulario.addEventListener('submit', nuevoTurno);
 }
 
+window.onload = () => {
+    eventListeners();
+
+    createDB();
+}
 
 //Obj con la info del turno
 const turnosObj = {
@@ -60,9 +66,22 @@ const nuevoTurno = (e) => {
         //Pasar el obj del turnos edicion
         adminTurnos.editarTurno({ ...turnosObj });
 
-        formulario.querySelector('button[type="submit"]').textContent = 'Crear Turno';
-        //Sacar el modo edicion
-        editing = false;
+        //Editar el indexDB
+        const transaction = DB.transaction(['turnos'], 'readwrite');
+        const objectStore = transaction.objectStore('turnos');
+
+        objectStore.put(turnosObj);
+
+        transaction.oncomplete = () => {
+            formulario.querySelector('button[type="submit"]').textContent = 'Crear Turno';
+            //Sacar el modo edicion
+            editing = false;
+        }
+
+        transaction.onerror = () => {
+            console.log('Hubo un error');
+        }
+
 
     } else {
         //Agregar id
@@ -71,8 +90,21 @@ const nuevoTurno = (e) => {
         //Crear nuevo turno
         adminTurnos.agregarTurno({ ...turnosObj });
 
-        //Mensaje de confirmacion
-        ui.imprimirAlerta('Se agregó correctamente', 'error');
+        //Insertando el registro en indexDB
+        const transaction = DB.transaction(['turnos'], 'readwrite');
+
+        // Habilitando el ObjStore
+        const objectStore = transaction.objectStore('turnos');
+
+        //Insertando en BD
+        objectStore.add(turnosObj);
+
+        transaction.oncomplete = () => {
+            console.log('Turno agregado');
+
+            //Mensaje de confirmacion
+            ui.imprimirAlerta('Se agregó correctamente', 'error');
+        }
     }
 
     // //Agregar id
@@ -91,10 +123,10 @@ const nuevoTurno = (e) => {
     updateStorage();
 
     //Agrega turno al html
-    ui.imprimirTurno(adminTurnos);
-
+    ui.imprimirTurno();
+    //adminTurnos
 }
-eventListeners()
+// eventListeners()
 
 // jQuery agregado al proyecto
 
@@ -166,70 +198,89 @@ class UserInterface {
         }, 5000)
     }
 
-    imprimirTurno({ turnos }) {
+    imprimirTurno() {
 
         this.removeHtml()
 
-        turnos.map(turno => {
-            const { paciente, email, telefono, fecha, hora, sintomas, id } = turno;
-            const divTurno = document.createElement('div');
-            divTurno.classList.add('cita', 'p-3');
-            divTurno.dataset.id = id;
+        //Leer el contenido de la BD
+        const objectStore = DB.transaction('turnos').objectStore('turnos');
 
-            const pacienteTxt = document.createElement('h2');
-            pacienteTxt.classList.add('card-title', 'font-weight-bolder');
-            pacienteTxt.textContent = paciente;
+        const total = objectStore.count();
 
-            const pacienteEmail = document.createElement('p');
-            pacienteEmail.innerHTML = `
+        total.onsuccess = function () {
+            console.log(total.result)
+        }
+
+        objectStore.openCursor().onsuccess = function (e) {
+            const cursor = e.target.result;
+
+            if (cursor) {
+
+                const { paciente, email, telefono, fecha, hora, sintomas, id } = cursor.value;
+                const divTurno = document.createElement('div');
+                divTurno.classList.add('cita', 'p-3');
+                divTurno.dataset.id = id;
+
+                const pacienteTxt = document.createElement('h2');
+                pacienteTxt.classList.add('card-title', 'font-weight-bolder');
+                pacienteTxt.textContent = paciente;
+
+                const pacienteEmail = document.createElement('p');
+                pacienteEmail.innerHTML = `
                 <span class="font-weight-bolder">Email: </span> ${email}
             `;
 
-            const pacienteTelefono = document.createElement('p');
-            pacienteTelefono.innerHTML = `
+                const pacienteTelefono = document.createElement('p');
+                pacienteTelefono.innerHTML = `
                 <span class="font-weight-bolder">Teléfono: </span> ${telefono}
             `;
 
-            const pacienteFecha = document.createElement('p');
-            pacienteFecha.innerHTML = `
+                const pacienteFecha = document.createElement('p');
+                pacienteFecha.innerHTML = `
                 <span class="font-weight-bolder">Fecha: </span> ${fecha}
             `;
 
-            const pacienteHora = document.createElement('p');
-            pacienteHora.innerHTML = `
+                const pacienteHora = document.createElement('p');
+                pacienteHora.innerHTML = `
                 <span class="font-weight-bolder">Hora: </span> ${hora}
             `;
 
-            const pacienteSintomas = document.createElement('p');
-            pacienteSintomas.innerHTML = `
+                const pacienteSintomas = document.createElement('p');
+                pacienteSintomas.innerHTML = `
                 <span class="font-weight-bolder">Síntomas: </span> ${sintomas}
             `;
 
-            //Boton que elimina el turno
-            const btnEliminar = document.createElement('button');
-            btnEliminar.classList.add('btn', 'btn-danger', 'mr-2');
-            btnEliminar.innerHTML = 'Eliminar <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+                //Boton que elimina el turno
+                const btnEliminar = document.createElement('button');
+                btnEliminar.classList.add('btn', 'btn-danger', 'mr-2');
+                btnEliminar.innerHTML = 'Eliminar <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
 
-            btnEliminar.onclick = () => eliminarTurno(id);
+                btnEliminar.onclick = () => eliminarTurno(id);
 
-            //Boton para editar el turno
-            const btnEditar = document.createElement('button');
-            btnEditar.classList.add('btn', 'btn-info');
-            btnEditar.innerHTML = ('Editar <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>');
-            btnEditar.onclick = () => editarTurno(turno);
-            //Add txt to pacienteTxt
-            divTurno.appendChild(pacienteTxt);
-            divTurno.appendChild(pacienteEmail);
-            divTurno.appendChild(pacienteTelefono);
-            divTurno.appendChild(pacienteFecha);
-            divTurno.appendChild(pacienteHora);
-            divTurno.appendChild(pacienteSintomas);
-            divTurno.appendChild(btnEliminar);
-            divTurno.appendChild(btnEditar);
+                //Boton para editar el turno
+                const btnEditar = document.createElement('button');
+                btnEditar.classList.add('btn', 'btn-info');
+                btnEditar.innerHTML = ('Editar <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>');
+                const turno = cursor.value;
+                btnEditar.onclick = () => editarTurno(turno);
+                //Add txt to pacienteTxt
+                divTurno.appendChild(pacienteTxt);
+                divTurno.appendChild(pacienteEmail);
+                divTurno.appendChild(pacienteTelefono);
+                divTurno.appendChild(pacienteFecha);
+                divTurno.appendChild(pacienteHora);
+                divTurno.appendChild(pacienteSintomas);
+                divTurno.appendChild(btnEliminar);
+                divTurno.appendChild(btnEditar);
 
-            //Add to HTML
-            containerTurnos.appendChild(divTurno);
-        })
+                //Add to HTML
+                containerTurnos.appendChild(divTurno);
+
+                cursor.continue();
+            }
+        }
+
+
     }
 
     removeHtml() {
@@ -243,6 +294,7 @@ class UserInterface {
 
 const ui = new UserInterface();
 const adminTurnos = new Turnos();
+
 
 
 const resetObj = () => {
@@ -259,12 +311,20 @@ const updateStorage = () => {
 }
 
 const eliminarTurno = (id) => {
-    //Eliminar el turno
-    adminTurnos.eliminarTurno(id);
-    //Muestro un mensaje
-    ui.imprimirAlerta('El turno fue eliminado correctamente', 'error');
-    //Reload los turnos
-    ui.imprimirTurno(adminTurnos);
+
+    const transaction = DB.transaction(['turnos'], 'readwrite');
+    const objectStore = transaction.objectStore('turnos');
+
+    objectStore.delete(id)
+
+    transaction.oncomplete = () => {
+        console.log(`Turno ${id} eliminado...`);
+        ui.imprimirTurno();
+    }
+
+    transaction.onerror = () => {
+        console.log('Hubo un error...')
+    }
 }
 
 //Carga de datos y la edicion
@@ -292,4 +352,45 @@ const editarTurno = (turno) => {
     formulario.querySelector('button[type="submit"]').textContent = 'Guardar Cambios';
 
     editing = true;
+}
+
+const createDB = () => {
+    //Creacion de base de datos version 1.0
+    const createDB = window.indexedDB.open('turnos', 1);
+
+    // En caso de error
+    createDB.onerror = function () {
+        console.log('Hubo un error');
+    };
+
+    // En caso que este todo bien
+    createDB.onsuccess = function () {
+        console.log('BD Creada')
+
+        DB = createDB.result;
+        console.log(DB);
+
+        // Si todo sale bien, muestro los turnos al cargar  (indexDB estara listo)
+        ui.imprimirTurno();
+    }
+
+    //Definir el schema
+    createDB.onupgradeneeded = function (e) {
+        const db = e.target.result;
+
+        const objectStore = db.createObjectStore('turnos', {
+            keyPath: 'id',
+            autoIncrement: true
+        });
+
+        objectStore.createIndex('paciente', 'paciente', { unique: false });
+        objectStore.createIndex('email', 'email', { unique: false });
+        objectStore.createIndex('telefono', 'telefono', { unique: false });
+        objectStore.createIndex('fecha', 'fecha', { unique: false });
+        objectStore.createIndex('hora', 'hora', { unique: true });
+        objectStore.createIndex('sintomas', 'sintomas', { unique: false });
+        objectStore.createIndex('id', 'id', { unique: true });
+
+        console.log('DB creada')
+    }
 }
